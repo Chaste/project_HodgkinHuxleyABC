@@ -1,0 +1,99 @@
+# Test clamping state variables to their initial value
+documentation {
+It requires models to provide variables with the annotations:
+
+* **oxmeta:membrane\_voltage**
+* **oxmeta:time**
+* **oxmeta:membrane\_fast\_sodium\_current
+* **oxmeta:membrane\_fast\_sodium\_current\_conductance
+* **oxmeta:membrane\_effective\_fast\_sodium\_current\_conductance
+}
+
+namespace oxmeta = "https://chaste.comlab.ox.ac.uk/cellml/ns/oxford-metadata#"
+namespace aidan = "urn:aidan#"
+
+inputs {
+    # Holding potential to apply before simulating the voltage clamp.
+    holding_potential = -75
+    steady_state_time = 10000   # 10 seconds
+
+    depolarization = 100
+    alpha_n = 0.866
+    beta_n = 0.043
+    alpha_m = 6.2
+    beta_m = 0.02
+    alpha_h = 0
+    beta_h = 1.5
+}
+
+units {
+    mV = milli volt
+    ms = milli second
+    milliS_per_cm2 = milli siemens . centi metre^-2
+    per_ms = milli second^-1
+}
+
+model interface {
+    input oxmeta:membrane_voltage units mV
+
+    # Maximum conductances - set to values reported in 1952 publication
+    input oxmeta:membrane_fast_sodium_current_conductance units milliS_per_cm2 = 70.7
+    input oxmeta:membrane_potassium_current_conductance units milliS_per_cm2 = 24.31
+
+    # For setting initial state for ODEs
+    input oxmeta:potassium_channel_n_gate units dimensionless = 0.315
+    input oxmeta:membrane_fast_sodium_current_m_gate units dimensionless = 0.042
+    input oxmeta:membrane_fast_sodium_current_h_gate units dimensionless = 0.608
+
+    input aidan:potassium_channel_n_gate_alpha units per_ms
+    input aidan:potassium_channel_n_gate_beta units per_ms
+    input aidan:membrane_fast_sodium_current_m_gate_alpha units per_ms
+    input aidan:membrane_fast_sodium_current_m_gate_beta units per_ms
+    input aidan:membrane_fast_sodium_current_h_gate_alpha units per_ms
+    input aidan:membrane_fast_sodium_current_h_gate_beta units per_ms
+
+    output oxmeta:membrane_voltage units mV
+    output oxmeta:time units ms # Needed to stop solver falling over
+    output aidan:membrane_effective_fast_sodium_current_conductance units milliS_per_cm2
+    output aidan:membrane_effective_potassium_current_conductance units milliS_per_cm2
+
+    # NOTE: Clamping to negative values does not currently parse [#2502] - must set in modifier
+    clamp oxmeta:membrane_voltage to 0 :: mV
+
+    # Clamp alpha and beta values to avoid voltage-dependent update (just to be safe - voltage is clamped either way)
+    clamp aidan:potassium_channel_n_gate_alpha to 0.866 :: per_ms
+    clamp aidan:potassium_channel_n_gate_beta to 0.043 :: per_ms
+    clamp aidan:membrane_fast_sodium_current_m_gate_alpha to 6.2 :: per_ms
+    clamp aidan:membrane_fast_sodium_current_m_gate_beta to 0.02 :: per_ms
+    clamp aidan:membrane_fast_sodium_current_h_gate_alpha to 0 :: per_ms
+    clamp aidan:membrane_fast_sodium_current_h_gate_beta to 1.5 :: per_ms
+}
+
+tasks {
+    simulation sim = timecourse {
+        range time units ms uniform 0:0.01:12 #vector time_trace
+        modifiers {
+            at start set aidan:potassium_channel_n_gate_alpha = alpha_n
+            at start set aidan:potassium_channel_n_gate_beta = beta_n
+            at start set aidan:membrane_fast_sodium_current_m_gate_alpha = alpha_m
+            at start set aidan:membrane_fast_sodium_current_m_gate_beta = beta_m
+            at start set aidan:membrane_fast_sodium_current_h_gate_alpha = alpha_h
+            at start set aidan:membrane_fast_sodium_current_h_gate_beta = beta_h
+            at start set aidan:membrane_voltage = holding_potential + depolarization
+        }
+    }
+}
+
+outputs {
+    time = sim:time  "Time"
+    V = sim:membrane_voltage  "Membrane voltage"
+    G_Na = sim:membrane_effective_fast_sodium_current_conductance "Sodium conductance"
+    G_K = sim:membrane_effective_potassium_current_conductance "Potassium conductance"
+}
+
+plots {
+    # Commented out to save time during fitting
+    #plot "Sodium_conductance_clamp" using lines { G_Na against time }
+    #plot "Potassium_conductance_clamp" using lines { G_K against time }
+    #plot "Voltage_clamp" using lines { V against time }
+}

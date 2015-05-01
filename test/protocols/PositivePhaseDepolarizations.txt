@@ -1,0 +1,115 @@
+# Test membrane response to sudden depolarizations during AP positive phase
+# (experiment suggested in Hodgkin-Huxley 1952, Fig. 20)
+
+namespace oxmeta = "https://chaste.comlab.ox.ac.uk/cellml/ns/oxford-metadata#"
+namespace aidan = "urn:aidan#"
+
+inputs {
+    # Holding potential to apply before simulating the voltage clamp.
+    resting_potential = -75
+    initial_depol = 15
+    pos_phase_depol = 90
+
+    depol_time = 8  # Time after which positive phase depolarization is applied
+
+    # Default parameter values for exponential equations for alpha/beta
+    ank1 = 0.01
+    ank2 = 10
+    ank3 = 10
+    bnk1 = 0.125
+    bnk2 = 80
+    amk1 = 0.1
+    amk2 = 25
+    amk3 = 10
+    bmk1 = 4
+    bmk2 = 18
+    ahk1 = 0.07
+    ahk2 = 20
+    bhk1 = 30
+    bhk2 = 10
+}
+
+import "BasicLibrary.txt"
+
+units {
+    mV = milli volt
+    ms = milli second
+}
+
+model interface {
+    input oxmeta:membrane_voltage units mV
+
+    # Parameters for exponential equations for alpha/beta
+    input aidan:potassium_channel_n_gate_alpha_k1
+    input aidan:potassium_channel_n_gate_alpha_k2
+    input aidan:potassium_channel_n_gate_alpha_k3
+    input aidan:potassium_channel_n_gate_beta_k1
+    input aidan:potassium_channel_n_gate_beta_k2
+    input aidan:membrane_fast_sodium_current_m_gate_alpha_k1
+    input aidan:membrane_fast_sodium_current_m_gate_alpha_k2
+    input aidan:membrane_fast_sodium_current_m_gate_alpha_k3
+    input aidan:membrane_fast_sodium_current_m_gate_beta_k1
+    input aidan:membrane_fast_sodium_current_m_gate_beta_k2
+    input aidan:membrane_fast_sodium_current_h_gate_alpha_k1
+    input aidan:membrane_fast_sodium_current_h_gate_alpha_k2
+    input aidan:membrane_fast_sodium_current_h_gate_beta_k1
+    input aidan:membrane_fast_sodium_current_h_gate_beta_k2
+
+    output oxmeta:membrane_voltage units mV
+    output oxmeta:time units ms # Needed to stop solver falling over
+
+    clamp oxmeta:membrane_stimulus_current to 0 :: microA_per_cm2
+}
+
+tasks {
+	# Run to steady-state in case of change in alpha/beta parameterization
+    simulation timecourse {
+        range time units ms vector [0,10000]
+        modifiers {
+            at start set aidan:potassium_channel_n_gate_alpha_k1 = ank1
+            at start set aidan:potassium_channel_n_gate_alpha_k2 = ank2
+            at start set aidan:potassium_channel_n_gate_alpha_k3 = ank3
+            at start set aidan:potassium_channel_n_gate_beta_k1 = bnk1
+            at start set aidan:potassium_channel_n_gate_beta_k2 = bnk2
+            at start set aidan:membrane_fast_sodium_current_m_gate_alpha_k1 = amk1
+            at start set aidan:membrane_fast_sodium_current_m_gate_alpha_k2 = amk2
+            at start set aidan:membrane_fast_sodium_current_m_gate_alpha_k3 = amk3
+            at start set aidan:membrane_fast_sodium_current_m_gate_beta_k1 = bmk1
+            at start set aidan:membrane_fast_sodium_current_m_gate_beta_k2 = bmk2
+            at start set aidan:membrane_fast_sodium_current_h_gate_alpha_k1 = ahk1
+            at start set aidan:membrane_fast_sodium_current_h_gate_alpha_k2 = ahk2
+            at start set aidan:membrane_fast_sodium_current_h_gate_beta_k1 = bhk1
+            at start set aidan:membrane_fast_sodium_current_h_gate_beta_k2 = bhk2
+        }
+    }
+
+    # Initial run of an action potential following 15mV depolarization
+    simulation init = timecourse {
+    	range time units ms uniform 0:0.01:depol_time
+    	modifiers {
+    		at start set oxmeta:membrane_voltage = oxmeta:membrane_voltage + initial_depol
+    	}
+    }
+
+    # After depol_time, a 90mV depolarization is applied and run to a complete 15msec
+    simulation sim = timecourse {
+    	range time units ms uniform depol_time:0.01:15
+    	modifiers {
+    		at start set oxmeta:membrane_voltage = oxmeta:membrane_voltage + pos_phase_depol
+    	}
+    }
+}
+
+post-processing {
+	total_V = Join(init:membrane_voltage,sim:membrane_voltage)
+	total_t = Join(init:time,sim:time)
+}
+
+outputs {
+    time = total_t  "Time"
+    V = total_V  "Membrane voltage"
+}
+
+plots {
+    plot "RestitutionDepolActionPotential" using lines { V against time }
+}

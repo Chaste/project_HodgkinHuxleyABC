@@ -1,0 +1,140 @@
+# Test membrane response to "anode break excitation" - sudden cessation of clamping current
+# (experiment suggested in Hodgkin-Huxley 1952, Fig. 22)
+
+namespace oxmeta = "https://chaste.comlab.ox.ac.uk/cellml/ns/oxford-metadata#"
+namespace aidan = "urn:aidan#"
+
+inputs {
+    # Holding potential to apply before simulating the voltage clamp.
+    resting_potential = -75
+    initial_depol = -30
+    sst = 200
+    adjust_time = 10000
+
+    # Default parameter values for exponential equations for alpha/beta
+    ank1 = 0.01
+    ank2 = 10
+    ank3 = 10
+    bnk1 = 0.125
+    bnk2 = 80
+    amk1 = 0.1
+    amk2 = 25
+    amk3 = 10
+    bmk1 = 4
+    bmk2 = 18
+    ahk1 = 0.07
+    ahk2 = 20
+    bhk1 = 30
+    bhk2 = 10
+}
+
+units {
+    mV = milli volt
+    ms = milli second
+    mV_per_ms = milli volt . milli second^-1
+    milliS_per_cm2 = milli siemens . centi metre^-2
+}
+
+model interface {
+    input oxmeta:membrane_voltage units mV = -75
+    input oxmeta:time units ms = 0
+    # Should be same as input "sst"
+    var steady_state_time units ms = 200
+    # Should be same as input "adjust_time"
+    var adjust_time units ms = 10000
+
+    # Parameters for exponential equations for alpha/beta
+    input aidan:potassium_channel_n_gate_alpha_k1
+    input aidan:potassium_channel_n_gate_alpha_k2
+    input aidan:potassium_channel_n_gate_alpha_k3
+    input aidan:potassium_channel_n_gate_beta_k1
+    input aidan:potassium_channel_n_gate_beta_k2
+    input aidan:membrane_fast_sodium_current_m_gate_alpha_k1
+    input aidan:membrane_fast_sodium_current_m_gate_alpha_k2
+    input aidan:membrane_fast_sodium_current_m_gate_alpha_k3
+    input aidan:membrane_fast_sodium_current_m_gate_beta_k1
+    input aidan:membrane_fast_sodium_current_m_gate_beta_k2
+    input aidan:membrane_fast_sodium_current_h_gate_alpha_k1
+    input aidan:membrane_fast_sodium_current_h_gate_alpha_k2
+    input aidan:membrane_fast_sodium_current_h_gate_beta_k1
+    input aidan:membrane_fast_sodium_current_h_gate_beta_k2
+
+    output oxmeta:membrane_voltage units mV
+    output oxmeta:time units ms # Needed to stop solver falling over
+
+    # To check for steady state of gating variables
+    output oxmeta:potassium_channel_n_gate units dimensionless
+    output oxmeta:membrane_fast_sodium_current_m_gate units dimensionless
+    output oxmeta:membrane_fast_sodium_current_h_gate units dimensionless
+    output aidan:membrane_effective_fast_sodium_current_conductance units milliS_per_cm2
+    output aidan:membrane_effective_potassium_current_conductance units milliS_per_cm2
+
+    # Rather than clamping the voltage (which can't be released), we redefine the ODE to clamp
+    # the voltage at time less than "steady_state_time" and allow normal variation thereafter
+    define diff(oxmeta:membrane_voltage;oxmeta:time) = \
+        if (oxmeta:time > adjust_time && oxmeta:time < steady_state_time+adjust_time) then 0 :: mV_per_ms \
+        else -(oxmeta:membrane_stimulus_current + oxmeta:membrane_fast_sodium_current + oxmeta:membrane_potassium_current + oxmeta:leakage_current) / oxmeta:membrane_capacitance
+}
+
+tasks {
+    # Run to steady-state in case of change in alpha/beta parameterization
+    simulation prep = timecourse {
+        range time units ms uniform 0:100:adjust_time
+        modifiers {
+            at start set aidan:potassium_channel_n_gate_alpha_k1 = ank1
+            at start set aidan:potassium_channel_n_gate_alpha_k2 = ank2
+            at start set aidan:potassium_channel_n_gate_alpha_k3 = ank3
+            at start set aidan:potassium_channel_n_gate_beta_k1 = bnk1
+            at start set aidan:potassium_channel_n_gate_beta_k2 = bnk2
+            at start set aidan:membrane_fast_sodium_current_m_gate_alpha_k1 = amk1
+            at start set aidan:membrane_fast_sodium_current_m_gate_alpha_k2 = amk2
+            at start set aidan:membrane_fast_sodium_current_m_gate_alpha_k3 = amk3
+            at start set aidan:membrane_fast_sodium_current_m_gate_beta_k1 = bmk1
+            at start set aidan:membrane_fast_sodium_current_m_gate_beta_k2 = bmk2
+            at start set aidan:membrane_fast_sodium_current_h_gate_alpha_k1 = ahk1
+            at start set aidan:membrane_fast_sodium_current_h_gate_alpha_k2 = ahk2
+            at start set aidan:membrane_fast_sodium_current_h_gate_beta_k1 = bhk1
+            at start set aidan:membrane_fast_sodium_current_h_gate_beta_k2 = bhk2
+        }
+    }
+    simulation sim = timecourse {
+    	range time units ms uniform adjust_time:0.1:adjust_time+sst+30
+    	modifiers {
+            at start set oxmeta:membrane_voltage = oxmeta:membrane_voltage + initial_depol
+    	}
+    }
+}
+
+post-processing {
+    # Only report time values after sst, when clamp is released
+    post_time = sim:time[sst*10:sst*10+30*10]
+    V = sim:membrane_voltage[sst*10:sst*10+30*10]
+}
+
+outputs {
+    pre_time = sim:time "Time"
+    n = sim:potassium_channel_n_gate "n"
+    m = sim:membrane_fast_sodium_current_m_gate "m"
+    h = sim:membrane_fast_sodium_current_h_gate "h"
+
+    post_time units ms "Time"
+    V units mV "Membrane voltage"
+
+    t_prep = prep:time "Time"
+    V_prep = prep:membrane_voltage "Membrane voltage"
+    V_clamp = sim:membrane_voltage "Membrane voltage"
+    t_clamp = sim:time "Time"
+
+    G_Na = sim:membrane_effective_fast_sodium_current_conductance
+    G_K = sim:membrane_effective_potassium_current_conductance
+}
+
+plots {
+    plot "AnodeBreakAP" using lines { V against post_time }
+    plot "Potassium_n" using lines { n against pre_time }
+    plot "Sodium_m" using lines { m against pre_time }
+    plot "Sodium_h" using lines { h against pre_time }
+
+    plot "AdjustVoltage" using lines { V_prep against t_prep }
+    plot "ClampVoltage" using lines { V_clamp against t_clamp }
+}

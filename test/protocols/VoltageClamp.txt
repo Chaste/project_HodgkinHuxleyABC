@@ -1,0 +1,129 @@
+# Functional curation protocol of the voltage clamp experiments used by
+#  Hodgkin and Huxley to fit the potassium and sodium conductance
+#  components of their model. 
+
+namespace oxmeta = "https://chaste.comlab.ox.ac.uk/cellml/ns/oxford-metadata#"
+namespace aidan = "urn:aidan#"
+
+inputs {
+    # Holding potential to apply before simulating the voltage clamp.
+    holding_potential = -75
+    steady_state_time = 10000   # 10 seconds
+
+    # Default parameter values for exponential equations for alpha/beta
+    ank1 = 0.01
+    ank2 = 10
+    ank3 = 10
+    bnk1 = 0.125
+    bnk2 = 80
+    amk1 = 0.1
+    amk2 = 25
+    amk3 = 10
+    bmk1 = 4
+    bmk2 = 18
+    ahk1 = 0.07
+    ahk2 = 20
+    bhk1 = 30
+    bhk2 = 10
+
+    # Note: function undefined at V=RP+10, hence small offset
+    depolarizations = [109, 100, 88, 76, 63, 51, 38, 32, 26, 19, 10.001, 6]
+}
+
+units {
+    mV = milli volt
+    ms = milli second
+    milliS_per_cm2 = milli siemens . centi metre^-2
+    per_ms = milli second^-1
+}
+
+model interface {
+    input oxmeta:membrane_voltage units mV
+
+    # Maximum conductances - set to values reported in 1952 publication
+    input oxmeta:membrane_fast_sodium_current_conductance units milliS_per_cm2 = 70.7
+    input oxmeta:membrane_potassium_current_conductance units milliS_per_cm2 = 24.31
+
+    # For setting initial state for ODEs
+    input oxmeta:potassium_channel_n_gate units dimensionless = 0.315
+    input oxmeta:membrane_fast_sodium_current_m_gate units dimensionless = 0.042
+    input oxmeta:membrane_fast_sodium_current_h_gate units dimensionless = 0.608
+
+    # Parameters for exponential equations for alpha/beta
+    input aidan:potassium_channel_n_gate_alpha_k1
+    input aidan:potassium_channel_n_gate_alpha_k2
+    input aidan:potassium_channel_n_gate_alpha_k3
+    input aidan:potassium_channel_n_gate_beta_k1
+    input aidan:potassium_channel_n_gate_beta_k2
+    input aidan:membrane_fast_sodium_current_m_gate_alpha_k1
+    input aidan:membrane_fast_sodium_current_m_gate_alpha_k2
+    input aidan:membrane_fast_sodium_current_m_gate_alpha_k3
+    input aidan:membrane_fast_sodium_current_m_gate_beta_k1
+    input aidan:membrane_fast_sodium_current_m_gate_beta_k2
+    input aidan:membrane_fast_sodium_current_h_gate_alpha_k1
+    input aidan:membrane_fast_sodium_current_h_gate_alpha_k2
+    input aidan:membrane_fast_sodium_current_h_gate_beta_k1
+    input aidan:membrane_fast_sodium_current_h_gate_beta_k2
+
+    output aidan:potassium_channel_n_gate_alpha units per_ms
+    output aidan:potassium_channel_n_gate_beta units per_ms
+    output aidan:membrane_fast_sodium_current_m_gate_alpha units per_ms
+    output aidan:membrane_fast_sodium_current_m_gate_beta units per_ms
+    output aidan:membrane_fast_sodium_current_h_gate_alpha units per_ms
+    output aidan:membrane_fast_sodium_current_h_gate_beta units per_ms
+
+    output oxmeta:membrane_voltage units mV
+    output oxmeta:time units ms # Needed to stop solver falling over
+    output aidan:membrane_effective_fast_sodium_current_conductance units milliS_per_cm2
+    output aidan:membrane_effective_potassium_current_conductance units milliS_per_cm2
+
+    # NOTE: Clamping to negative values does not currently parse [#2502] - must set in modifier
+    clamp oxmeta:membrane_voltage to 0 :: mV
+}
+
+tasks {
+	simulation sim = nested {
+		range depolarization units mV vector depolarizations 
+		modifiers {
+			# THIS MUST BE DONE FIRST as we will then modify default conditions to fit those reported in the paper.
+            at each loop reset
+
+            # Reset initial conditions for GK, GNa, n0, m0, h0 to those reported in 1952 paper
+            at each loop set oxmeta:membrane_fast_sodium_current_conductance = 70.7
+            at each loop set oxmeta:membrane_potassium_current_conductance = 24.31
+            at each loop set oxmeta:potassium_channel_n_gate = 0.315
+            at each loop set oxmeta:membrane_fast_sodium_current_m_gate = 0.042
+            at each loop set oxmeta:membrane_fast_sodium_current_h_gate = 0.608
+
+            # Add depolarization
+            at each loop set oxmeta:membrane_voltage = holding_potential + depolarization
+            
+            # Set parameter values
+            at each loop set aidan:potassium_channel_n_gate_alpha_k1 = ank1
+            at each loop set aidan:potassium_channel_n_gate_alpha_k2 = ank2
+            at each loop set aidan:potassium_channel_n_gate_alpha_k3 = ank3
+            at each loop set aidan:potassium_channel_n_gate_beta_k1 = bnk1
+            at each loop set aidan:potassium_channel_n_gate_beta_k2 = bnk2
+            at each loop set aidan:membrane_fast_sodium_current_m_gate_alpha_k1 = amk1
+            at each loop set aidan:membrane_fast_sodium_current_m_gate_alpha_k2 = amk2
+            at each loop set aidan:membrane_fast_sodium_current_m_gate_alpha_k3 = amk3
+            at each loop set aidan:membrane_fast_sodium_current_m_gate_beta_k1 = bmk1
+            at each loop set aidan:membrane_fast_sodium_current_m_gate_beta_k2 = bmk2
+            at each loop set aidan:membrane_fast_sodium_current_h_gate_alpha_k1 = ahk1
+            at each loop set aidan:membrane_fast_sodium_current_h_gate_alpha_k2 = ahk2
+            at each loop set aidan:membrane_fast_sodium_current_h_gate_beta_k1 = bhk1
+            at each loop set aidan:membrane_fast_sodium_current_h_gate_beta_k2 = bhk2
+        }
+        nests simulation inner = timecourse {
+            # Run simulation for 12 msec
+        	range time units ms uniform 0:0.01:12
+        }
+    }
+}
+
+outputs {
+    time = sim:time  "Time"
+    V = sim:membrane_voltage  "Membrane voltage"
+    G_Na = sim:membrane_effective_fast_sodium_current_conductance "Sodium conductance"
+    G_K = sim:membrane_effective_potassium_current_conductance "Potassium conductance"
+}

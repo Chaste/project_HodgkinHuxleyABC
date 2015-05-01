@@ -48,6 +48,7 @@ chaste_libs_used = ['core']
 #chaste_libs_used = ['cell_based']
 #chaste_libs_used = ['heart']
 #chaste_libs_used = ['cell_based', 'heart']
+chaste_libs_used = ['projects/FunctionalCuration']
 
 # Do the build magic
 result = SConsTools.DoProjectSConscript(project_name, chaste_libs_used, globals())
