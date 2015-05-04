@@ -7,6 +7,7 @@
 
 import fitting
 import distributions
+import HodgkinHuxley
 
 try:
     import unittest2 as unittest
@@ -86,9 +87,9 @@ class TestHHProto(unittest.TestCase):
     # Fits Sodium conductance gating rates alpha_m, beta_m, alpha_h, and beta_h from the 
     #   simplified Hodgkin-Huxley model over a range of depolarization values.
     def TestGNaFitting(self):
-        proto = fc.Protocol('projects/AidanDaly/test/protocols/hh_voltageclamp.txt')
+        proto = fc.Protocol('projects/HodgkinHuxleyABC/test/protocols/hh_voltageclamp.txt')
         proto.SetOutputFolder('HodgkinHuxleyABC_alphabeta2')
-        proto.SetModel('projects/AidanDaly/hodgkin_huxley.cellml', useNumba=False)
+        proto.SetModel('projects/HodgkinHuxleyABC/hodgkin_huxley.cellml', useNumba=False)
         proto.model.SetSolver(CvodeSolver())
  
         priors = [distributions.Uniform(0,10)]*4

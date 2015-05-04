@@ -8,6 +8,7 @@
 import fitting
 import distributions as Dist
 import math
+import HodgkinHuxley
 
 # Functional curation imports
 try:
