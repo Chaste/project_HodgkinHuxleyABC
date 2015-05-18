@@ -1,19 +1,29 @@
 = ABC Parameterization of the Hodgkin-Huxley Model =
 
 This tutorial describes how to download and execute the Approximate Bayesian Computation code
-for inference on the Hodgkin-Huxley model as described in "Hodgkin-Huxley revisited: reparameterization and identifiability analysis of the classic action potential model with approximate Bayesian methods", published in ''J. R. Soc. Interface'' in 2015.
+for inference on the Hodgkin-Huxley model as described in "Hodgkin-Huxley revisited: reparameterization and identifiability analysis of the classic action potential model with approximate Bayesian methods",
+submitted to ''J. R. Soc. Interface'' in 2015.
 
 == Installation ==
-This project requires the Functional Curation add-on to Chaste in order to run, which in turn
-requires the Chaste source tree to be installed.
+
+This project requires the Functional Curation add-on to Chaste in order to run, which in turn requires the Chaste source tree to be installed.
 To install these dependencies, follow the [wiki:PaperTutorials/FunctionalCuration installation instructions] in the Functional Curation paper tutorial.
+In addition, you will need the dependencies for the new Python implementation detailed at FunctionalCuration/PythonImplementation.
+
 Afterwards, obtain the latest version of the project code from the Chaste repository using:
 {{{
 #!sh
-cd Chaste/projects
-svn checkout --username anonymous https://chaste.cs.ox.ac.uk/svn/chaste/projects/HodgkinHuxleyABC
+cd [path_to_Chaste]/projects
+svn checkout --username reviewer https://chaste.cs.ox.ac.uk/svn/chaste/projects/HodgkinHuxleyABC
 }}}
-Use your email address as the password for the 'anonymous' account. 
+Use the password supplied at paper submission.
+
+Upon acceptance, the project will be made available for anonymous access.
+{{{
+#!comment
+svn checkout --username anonymous https://chaste.cs.ox.ac.uk/svn/chaste/projects/HodgkinHuxleyABC
+Use your email address as the password for the 'anonymous' account.
+}}}
 
 == Usage ==
 
@@ -47,5 +57,9 @@ as described in the paper, use:
 {{{
 scons projects/HodgkinHuxleyABC/test/HodgkinHuxleyFittingABC.py
 }}}
-To see verbose output on the progress of the ABC algorithm, add the flag `--no_store_results=1`
-to the `scons` commands above.
+To see verbose output on the progress of the ABC algorithm, add the flag `--no_store_results=1` to the `scons` commands above.
+Note however that this will prevent storing a copy of the output on disk.
+
+'''TODO:''' Check that the above commands run on a fresh install.
+
+'''TODO:''' Information on producing each graph in the paper.
