@@ -87,7 +87,7 @@ class TestHHProto(unittest.TestCase):
     # Fits Sodium conductance gating rates alpha_m, beta_m, alpha_h, and beta_h from the 
     #   simplified Hodgkin-Huxley model over a range of depolarization values.
     def TestGNaFitting(self):
-        proto = fc.Protocol('projects/HodgkinHuxleyABC/test/protocols/hh_voltageclamp.txt')
+        proto = fc.Protocol('projects/HodgkinHuxleyABC/test/protocols/VoltageClamp_simple.txt')
         proto.SetOutputFolder('HodgkinHuxleyABC_alphabeta2')
         proto.SetModel('projects/HodgkinHuxleyABC/hodgkin_huxley.cellml', useNumba=False)
         proto.model.SetSolver(CvodeSolver())
@@ -149,7 +149,7 @@ class TestHHProto(unittest.TestCase):
 
 # Evaluates RMSE between experimental and predicted values
 # Uses time points in simulation that are closest to experimental
-def CheckAgainst(self, predTimes, predVals, experTimes, experVals):
+def CheckAgainst(predTimes, predVals, experTimes, experVals):
     curr = 0
     predValsClosest = []
         
