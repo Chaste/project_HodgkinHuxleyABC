@@ -29,8 +29,8 @@ Use your email address as the password for the 'anonymous' account.
 
 Source code for the ABC-SMC parameter fitting algorithm is contained in the `src` folder.
 Python scripts for performing inference on both the simplified and full Hodgkin-Huxley
-model can be founc in `tests`. 
-All functional curation protocol files can be founc in `tests/protocols`, while the
+model can be found in `tests`. 
+All functional curation protocol files can be found in `tests/protocols`, while the
 annotated CellML model file can be found in the top-level project directory as
 `hodgkin_huxley.cellml`.
 
@@ -57,7 +57,7 @@ as described in the paper, use:
 {{{
 scons projects/HodgkinHuxleyABC/test/HodgkinHuxleyFittingABC.py
 }}}
-To see verbose output on the progress of the ABC algorithm, add the flag `--no_store_results=1` to the `scons` commands above.
+To see verbose output on the progress of the ABC algorithm, add the flag `no_store_results=1` to the `scons` commands above.
 Note however that this will prevent storing a copy of the output on disk.
 
 '''TODO:''' Check that the above commands run on a fresh install.
