@@ -1,8 +1,8 @@
 = ABC Parameterization of the Hodgkin-Huxley Model =
 
 This tutorial describes how to download and execute the Approximate Bayesian Computation code
-for inference on the Hodgkin-Huxley model as described in "Hodgkin-Huxley revisited: reparameterization and identifiability analysis of the classic action potential model with approximate Bayesian methods",
-submitted to ''J. R. Soc. Interface'' in 2015.
+for inference on the Hodgkin-Huxley model as described in "[http://dx.doi.org/10.1098/rsos.150499 Hodgkin-Huxley revisited: reparameterization and identifiability analysis of the classic action potential model with approximate Bayesian methods]",
+''J. R. Soc. Interface'' 2:150499, 2015.
 
 == Installation ==
 
@@ -14,16 +14,9 @@ Afterwards, obtain the latest version of the project code from the Chaste reposi
 {{{
 #!sh
 cd [path_to_Chaste]/projects
-svn checkout --username reviewer https://chaste.cs.ox.ac.uk/svn/chaste/projects/HodgkinHuxleyABC
-}}}
-Use the password supplied at paper submission.
-
-Upon acceptance, the project will be made available for anonymous access.
-{{{
-#!comment
 svn checkout --username anonymous https://chaste.cs.ox.ac.uk/svn/chaste/projects/HodgkinHuxleyABC
-Use your email address as the password for the 'anonymous' account.
 }}}
+Use your email address as the password for the 'anonymous' account.
 
 == Usage ==
 
